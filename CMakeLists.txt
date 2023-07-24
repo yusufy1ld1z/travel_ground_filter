@@ -29,7 +29,6 @@ include_directories(
 
 ament_auto_add_library(ground_segmentation SHARED
         src/travel_ground_filter_nodelet.cpp
-        src/travel_awf_node.cpp
 )
 
 if(${PCL_VERSION} GREATER_EQUAL 1.12.1)
@@ -47,7 +46,7 @@ target_link_libraries(ground_segmentation
         )
 
 rclcpp_components_register_node(ground_segmentation
-        PLUGIN "ground_segmentation::Travel"
+        PLUGIN "ground_segmentation::TravelGroundFilterComponent"
         EXECUTABLE travel_node
 )
 

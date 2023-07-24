@@ -10,6 +10,10 @@
 #include <queue>
 #include <vector>
 
+#include <boost/shared_ptr.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+
 #include <pcl/common/centroid.h>
 #include <pcl_conversions/pcl_conversions.h>
 
@@ -72,9 +76,7 @@ struct TriGridCorner {
 using GridNode = std::vector<TriGridNode>;
 using TriGridField = std::vector<std::vector<GridNode>>;
 
-inline bool point_z_cmp(PointType a, PointType b) { return a.z < b.z; };
-
-class TravelGroundFilterComponent {
+class TravelGroundFilterComponent : public rclcpp::Node {
 private:
   pcl::PCLHeader cloud_header_;
   std_msgs::msg::Header msg_header_;
@@ -120,16 +122,6 @@ private:
   pcl::PointCloud<PointType> ptCloud_nodewise_obstacle_;
 
 public:
-  void setParams(const double max_range, const double min_range,
-                 const double resolution, const int num_iter, const int num_lpr,
-                 const int num_min_pts, const double th_seeds,
-                 const double th_dist, const double th_outlier,
-                 const double th_normal, const double th_weight,
-                 const double th_lcc_normal_similiarity,
-                 const double th_lcc_planar_model_dist,
-                 const double th_obstacle, const bool refine_mode,
-                 const bool visualization);
-
   void estimateGround(const pcl::PointCloud<PointType> &cloud_in,
                       pcl::PointCloud<PointType> &cloudGround_out,
                       pcl::PointCloud<PointType> &cloudNonground_out,
@@ -298,8 +290,42 @@ private:
                         pcl::PointCloud<PointType> &obstacle_cloud_out,
                         pcl::PointCloud<PointType> &outlier_cloud_out);
 
+  // ROS2 INTERFACE
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pc_cloud_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pc_ground_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pc_nonground_publisher_;
+
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pc_cloud_subscriber_;
+
+  void point_cloud_callback(
+      const sensor_msgs::msg::PointCloud2::SharedPtr point_cloud);
+
+  void show_parameters() {
+    RCLCPP_INFO(this->get_logger(), "max_range: %f", MAX_RANGE_);
+    RCLCPP_INFO(this->get_logger(), "min_range: %f", MIN_RANGE_);
+    RCLCPP_INFO(this->get_logger(), "resolution: %f", TGF_RESOLUTION_);
+    RCLCPP_INFO(this->get_logger(), "num_iter: %d", NUM_ITER_);
+    RCLCPP_INFO(this->get_logger(), "num_lpr: %d", NUM_LRP_);
+    RCLCPP_INFO(this->get_logger(), "num_min_pts: %d", NUM_MIN_POINTS_);
+    RCLCPP_INFO(this->get_logger(), "th_seeds: %f", TH_SEEDS_);
+    RCLCPP_INFO(this->get_logger(), "th_dist: %f", TH_DIST_);
+    RCLCPP_INFO(this->get_logger(), "th_outlier: %f", TH_OUTLIER_);
+    RCLCPP_INFO(this->get_logger(), "th_normal: %f", TH_NORMAL_);
+    RCLCPP_INFO(this->get_logger(), "th_weight: %f", TH_WEIGHT_);
+    RCLCPP_INFO(this->get_logger(), "th_lcc_normal_similiarity: %f",
+                    TH_LCC_NORMAL_SIMILARITY_);
+    RCLCPP_INFO(this->get_logger(), "th_lcc_planar_model_dist: %f",
+                TH_LCC_PLANAR_MODEL_DIST_);
+    RCLCPP_INFO(this->get_logger(), "th_obstacle: %f", TH_OBSTACLE_HEIGHT_);
+    RCLCPP_INFO(this->get_logger(), "refine_mode: %d", REFINE_MODE_);
+  };
+
 public:
-  TravelGroundFilterComponent(){};
+  explicit TravelGroundFilterComponent(const rclcpp::NodeOptions & options);;
 };
 } // namespace ground_segmentation
 
